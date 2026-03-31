@@ -1,20 +1,9 @@
-﻿using System.Drawing.Printing;
-using System.Xml.Linq;
-using static System.Net.Mime.MediaTypeNames;
-
-namespace library_ver2
+﻿namespace library_ver2
 {
     partial class FormBooks
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -24,12 +13,6 @@ namespace library_ver2
             base.Dispose(disposing);
         }
 
-        #region Windows Form Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             panel1 = new Panel();
@@ -39,6 +22,12 @@ namespace library_ver2
             buttonOrders = new Button();
             labelFullName = new Label();
             buttonLogout = new Button();
+            labelSearch = new Label();
+            txtSearch = new TextBox();
+            labelPublisher = new Label();
+            cmbPublisherFilter = new ComboBox();
+            labelSort = new Label();
+            cmbSort = new ComboBox();
             dataGridViewBook = new DataGridView();
             panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridViewBook).BeginInit();
@@ -53,128 +42,188 @@ namespace library_ver2
             panel1.Controls.Add(buttonOrders);
             panel1.Controls.Add(labelFullName);
             panel1.Controls.Add(buttonLogout);
+            panel1.Controls.Add(labelSearch);
+            panel1.Controls.Add(txtSearch);
+            panel1.Controls.Add(labelPublisher);
+            panel1.Controls.Add(cmbPublisherFilter);
+            panel1.Controls.Add(labelSort);
+            panel1.Controls.Add(cmbSort);
             panel1.Dock = DockStyle.Top;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(1041, 58);
+            panel1.Size = new Size(1200, 70);
             panel1.TabIndex = 0;
             // 
             // buttonDelete
             // 
             buttonDelete.BackColor = Color.FromArgb(74, 111, 165);
-            buttonDelete.Dock = DockStyle.Left;
             buttonDelete.FlatStyle = FlatStyle.Flat;
             buttonDelete.ForeColor = Color.White;
-            buttonDelete.Location = new Point(406, 0);
-            buttonDelete.Margin = new Padding(15, 3, 3, 3);
+            buttonDelete.Location = new Point(500, 10);
             buttonDelete.Name = "buttonDelete";
-            buttonDelete.Size = new Size(129, 58);
-            buttonDelete.TabIndex = 5;
+            buttonDelete.Size = new Size(120, 50);
+            buttonDelete.TabIndex = 11;
             buttonDelete.Text = "Удалить книгу";
             buttonDelete.UseVisualStyleBackColor = false;
             // 
             // buttonUpdate
             // 
             buttonUpdate.BackColor = Color.FromArgb(74, 111, 165);
-            buttonUpdate.Dock = DockStyle.Left;
             buttonUpdate.FlatStyle = FlatStyle.Flat;
             buttonUpdate.ForeColor = Color.White;
-            buttonUpdate.Location = new Point(258, 0);
-            buttonUpdate.Margin = new Padding(15, 3, 3, 3);
+            buttonUpdate.Location = new Point(370, 10);
             buttonUpdate.Name = "buttonUpdate";
-            buttonUpdate.Size = new Size(148, 58);
-            buttonUpdate.TabIndex = 4;
-            buttonUpdate.Text = "Редактировать книгу";
+            buttonUpdate.Size = new Size(120, 50);
+            buttonUpdate.TabIndex = 10;
+            buttonUpdate.Text = "Редактировать";
             buttonUpdate.UseVisualStyleBackColor = false;
             // 
             // buttonCreate
             // 
             buttonCreate.BackColor = Color.FromArgb(74, 111, 165);
-            buttonCreate.Dock = DockStyle.Left;
             buttonCreate.FlatStyle = FlatStyle.Flat;
             buttonCreate.ForeColor = Color.White;
-            buttonCreate.Location = new Point(129, 0);
-            buttonCreate.Margin = new Padding(15, 3, 3, 3);
+            buttonCreate.Location = new Point(240, 10);
             buttonCreate.Name = "buttonCreate";
-            buttonCreate.Size = new Size(129, 58);
-            buttonCreate.TabIndex = 3;
+            buttonCreate.Size = new Size(120, 50);
+            buttonCreate.TabIndex = 9;
             buttonCreate.Text = "Добавить книгу";
             buttonCreate.UseVisualStyleBackColor = false;
             // 
             // buttonOrders
             // 
             buttonOrders.BackColor = Color.FromArgb(74, 111, 165);
-            buttonOrders.Dock = DockStyle.Left;
             buttonOrders.FlatStyle = FlatStyle.Flat;
             buttonOrders.ForeColor = Color.White;
-            buttonOrders.Location = new Point(0, 0);
+            buttonOrders.Location = new Point(110, 10);
             buttonOrders.Name = "buttonOrders";
-            buttonOrders.Size = new Size(129, 58);
-            buttonOrders.TabIndex = 2;
-            buttonOrders.Text = "Посмотреть \r\nзаказы книг";
+            buttonOrders.Size = new Size(120, 50);
+            buttonOrders.TabIndex = 8;
+            buttonOrders.Text = "Заказы";
             buttonOrders.UseVisualStyleBackColor = false;
             // 
             // labelFullName
             // 
+            labelFullName.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             labelFullName.AutoSize = true;
-            labelFullName.Dock = DockStyle.Right;
+            labelFullName.Font = new Font("Times New Roman", 12F, FontStyle.Bold);
             labelFullName.ForeColor = Color.FromArgb(74, 111, 165);
-            labelFullName.Location = new Point(812, 0);
+            labelFullName.Location = new Point(900, 25);
             labelFullName.Name = "labelFullName";
-            labelFullName.Size = new Size(60, 22);
-            labelFullName.TabIndex = 1;
-            labelFullName.Text = "label1";
-            labelFullName.TextAlign = ContentAlignment.MiddleCenter;
+            labelFullName.Size = new Size(60, 23);
+            labelFullName.TabIndex = 7;
+            labelFullName.Text = "User";
+            labelFullName.TextAlign = ContentAlignment.MiddleRight;
             // 
             // buttonLogout
             // 
-            buttonLogout.BackColor = Color.AliceBlue;
-            buttonLogout.Dock = DockStyle.Right;
+            buttonLogout.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonLogout.BackColor = Color.FromArgb(220, 53, 69);
             buttonLogout.FlatStyle = FlatStyle.Flat;
-            buttonLogout.ForeColor = Color.Black;
-            buttonLogout.Location = new Point(872, 0);
+            buttonLogout.ForeColor = Color.White;
+            buttonLogout.Location = new Point(1080, 10);
             buttonLogout.Name = "buttonLogout";
-            buttonLogout.Size = new Size(169, 58);
-            buttonLogout.TabIndex = 0;
+            buttonLogout.Size = new Size(100, 50);
+            buttonLogout.TabIndex = 6;
             buttonLogout.Text = "Выход";
             buttonLogout.UseVisualStyleBackColor = false;
             buttonLogout.Click += buttonLogout_Click;
+            // 
+            // labelSearch
+            // 
+            labelSearch.AutoSize = true;
+            labelSearch.Font = new Font("Times New Roman", 10F, FontStyle.Bold);
+            labelSearch.ForeColor = Color.FromArgb(74, 111, 165);
+            labelSearch.Location = new Point(12, 15);
+            labelSearch.Name = "labelSearch";
+            labelSearch.Size = new Size(60, 20);
+            labelSearch.TabIndex = 5;
+            labelSearch.Text = "Поиск:";
+            // 
+            // txtSearch
+            // 
+            txtSearch.Font = new Font("Times New Roman", 11F);
+            txtSearch.Location = new Point(12, 38);
+            txtSearch.Name = "txtSearch";
+            txtSearch.PlaceholderText = "Название, автор, ISBN...";
+            txtSearch.Size = new Size(220, 28);
+            txtSearch.TabIndex = 4;
+            // 
+            // labelPublisher
+            // 
+            labelPublisher.AutoSize = true;
+            labelPublisher.Font = new Font("Times New Roman", 10F, FontStyle.Bold);
+            labelPublisher.ForeColor = Color.FromArgb(74, 111, 165);
+            labelPublisher.Location = new Point(250, 15);
+            labelPublisher.Name = "labelPublisher";
+            labelPublisher.Size = new Size(96, 20);
+            labelPublisher.TabIndex = 3;
+            labelPublisher.Text = "Издательство:";
+            // 
+            // cmbPublisherFilter
+            // 
+            cmbPublisherFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbPublisherFilter.Font = new Font("Times New Roman", 11F);
+            cmbPublisherFilter.Location = new Point(250, 38);
+            cmbPublisherFilter.Name = "cmbPublisherFilter";
+            cmbPublisherFilter.Size = new Size(180, 29);
+            cmbPublisherFilter.TabIndex = 2;
+            // 
+            // labelSort
+            // 
+            labelSort.AutoSize = true;
+            labelSort.Font = new Font("Times New Roman", 10F, FontStyle.Bold);
+            labelSort.ForeColor = Color.FromArgb(74, 111, 165);
+            labelSort.Location = new Point(448, 15);
+            labelSort.Name = "labelSort";
+            labelSort.Size = new Size(80, 20);
+            labelSort.TabIndex = 1;
+            labelSort.Text = "Сортировка:";
+            // 
+            // cmbSort
+            // 
+            cmbSort.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbSort.Font = new Font("Times New Roman", 11F);
+            cmbSort.Location = new Point(448, 38);
+            cmbSort.Name = "cmbSort";
+            cmbSort.Size = new Size(160, 29);
+            cmbSort.TabIndex = 0;
             // 
             // dataGridViewBook
             // 
             dataGridViewBook.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dataGridViewBook.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             dataGridViewBook.BackgroundColor = Color.White;
+            dataGridViewBook.BorderStyle = BorderStyle.None;
             dataGridViewBook.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridViewBook.Dock = DockStyle.Fill;
-            dataGridViewBook.Location = new Point(0, 58);
+            dataGridViewBook.Location = new Point(0, 70);
             dataGridViewBook.Name = "dataGridViewBook";
+            dataGridViewBook.RowHeadersVisible = false;
             dataGridViewBook.RowHeadersWidth = 51;
             dataGridViewBook.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridViewBook.Size = new Size(1041, 618);
-            dataGridViewBook.TabIndex = 1;
+            dataGridViewBook.Size = new Size(1200, 600);
+            dataGridViewBook.TabIndex = 2;
             // 
             // FormBooks
             // 
-            AutoScaleDimensions = new SizeF(11F, 22F);
+            AutoScaleDimensions = new SizeF(10F, 22F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.White;
-            ClientSize = new Size(1041, 676);
+            ClientSize = new Size(1200, 670);
             Controls.Add(dataGridViewBook);
             Controls.Add(panel1);
-            Font = new System.Drawing.Font("Times New Roman", 12F, FontStyle.Regular, GraphicsUnit.Point, 204);
-            Margin = new Padding(4, 3, 4, 3);
-            MdiChildrenMinimizedAnchorBottom = false;
+            Font = new Font("Times New Roman", 12F, FontStyle.Regular, GraphicsUnit.Point, 204);
+            Margin = new Padding(4);
             MinimizeBox = false;
             Name = "FormBooks";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Библиотека";
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridViewBook).EndInit();
             ResumeLayout(false);
         }
-
-        #endregion
 
         private Panel panel1;
         private Label labelFullName;
@@ -184,5 +233,11 @@ namespace library_ver2
         private Button buttonUpdate;
         private Button buttonCreate;
         private DataGridView dataGridViewBook;
+        private Label labelSearch;
+        private TextBox txtSearch;
+        private Label labelPublisher;
+        private ComboBox cmbPublisherFilter;
+        private Label labelSort;
+        private ComboBox cmbSort;
     }
 }
