@@ -1,11 +1,7 @@
-﻿using library_ver2.Properties;
-using library_ver2.Models;
+﻿using library_ver2.Models;
+using library_ver2.Properties;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
+using System.Data;
 
 namespace library_ver2
 {
@@ -15,6 +11,11 @@ namespace library_ver2
         public bool IsGuest { get; private set; }
         private string currentUserRole;
         private Book selectedBook;
+
+        // Переменные для поиска, сортировки и фильтрации
+        private string searchText = "";
+        private string sortOrder = "asc"; // asc или desc
+        private int? selectedPublisherId = null;
 
         public FormBooks(Models.User user, bool quest)
         {
@@ -47,183 +48,156 @@ namespace library_ver2
             colInfoCount.DefaultCellStyle.Font = new Font("Times New Roman", 14, FontStyle.Regular);
             colInfoCount.DefaultCellStyle.Padding = new Padding(5);
 
-            dataGridViewBook.Columns.AddRange(colPhoto, colInfoBook, colInfoCount);
-            dataGridViewBook.ColumnHeadersVisible = false;
+            dataGridViewBook.Columns.AddRange(
+                colPhoto,
+                colInfoBook,
+                colInfoCount
+            );
 
-            // Загружаем роль пользователя, если это не гость
-            if (!IsGuest && CurrentUser != null)
+            LoadRole();
+
+            // Настройка видимости элементов в зависимости от роли
+            if (IsGuest || currentUserRole == "Библиотекарь")
             {
-                using (var db = new LibraryContext())
-                {
-                    var userWithRole = db.Users
-                        .Include(u => u.IdRoleNavigation)
-                        .FirstOrDefault(u => u.Id == CurrentUser.Id);
-
-                    if (userWithRole != null)
-                    {
-                        currentUserRole = userWithRole.IdRoleNavigation?.RoleName ?? "Читатель";
-                        CurrentUser = userWithRole; // Обновляем CurrentUser с загруженной ролью
-                    }
-                    else
-                    {
-                        currentUserRole = "Читатель";
-                    }
-                }
-            }
-
-            bool isAdminManager = !IsGuest && (currentUserRole == "Менеджер" || currentUserRole == "Администратор");
-            bool isAdminOnly = !IsGuest && currentUserRole == "Администратор";
-
-            // Configure visibility based on role
-            if (IsGuest)
-            {
-                buttonOrders.Visible = false;
-                txtSearch.Visible = false;
-                cmbSort.Visible = false;
-                cmbPublisherFilter.Visible = false;
+                // Гости и библиотекари не могут редактировать, добавлять и удалять
+                buttonOrders.Visible = !IsGuest; // Только для библиотекаря (не для гостя)
                 buttonCreate.Visible = false;
                 buttonUpdate.Visible = false;
                 buttonDelete.Visible = false;
+                panelSearchFilter.Visible = false; // Скрываем панель поиска
             }
 
-            if (!isAdminManager && !IsGuest)
+            // Только администратор имеет полный доступ
+            if (currentUserRole == "Администратор")
             {
-                // Reader role - only orders button visible
-                txtSearch.Visible = false;
-                cmbSort.Visible = false;
-                cmbPublisherFilter.Visible = false;
-                buttonCreate.Visible = false;
-                buttonUpdate.Visible = false;
-                buttonDelete.Visible = false;
                 buttonOrders.Visible = true;
-                buttonOrders.Text = "Мои заказы";
-            }
-
-            if (isAdminManager)
-            {
-                // Librarian and Admin - show search/filter/sort
-                txtSearch.Visible = true;
-                cmbSort.Visible = true;
-                cmbPublisherFilter.Visible = true;
-                buttonOrders.Visible = true;
-                buttonOrders.Text = "Управление выдачей книг";
-            }
-
-            if (isAdminOnly)
-            {
-                // Admin - show all buttons
                 buttonCreate.Visible = true;
                 buttonUpdate.Visible = true;
                 buttonDelete.Visible = true;
+                panelSearchFilter.Visible = true; // Показываем панель поиска для администратора
+                InitializeSearchFilter();
             }
 
+            dataGridViewBook.Columns["colPhoto"].HeaderText = "Изображение";
+            dataGridViewBook.Columns["colInfoBook"].HeaderText = "Информация о книге";
+            dataGridViewBook.Columns["colInfoCount"].HeaderText = "Всего / Доступно";
             ConfigureDgvProducts();
-
-            // Init admin tools
-            cmbSort.Items.AddRange(new object[] { "По ID (возр.)", "Запас (возр.)", "Запас (убыв.)" });
-            cmbSort.SelectedIndex = 0;
-            LoadPublishers();
-
-            LoadBooksSortedFiltered();
-            HookEvents();
-
-            // Attach button click events
-            buttonOrders.Click += ButtonOrders_Click;
-            buttonCreate.Click += ButtonCreate_Click;
-            buttonUpdate.Click += ButtonUpdate_Click;
-            buttonDelete.Click += ButtonDelete_Click;
+            LoadBooks();
         }
 
-        private void HookEvents()
+        private void InitializeSearchFilter()
         {
-            txtSearch.TextChanged += TxtSearch_TextChanged;
-            cmbPublisherFilter.SelectedIndexChanged += CmbPublisher_SelectedIndexChanged;
-            cmbSort.SelectedIndexChanged += CmbSort_SelectedIndexChanged;
-            dataGridViewBook.SelectionChanged += DgvProducts_SelectionChanged;
-        }
-
-        private void TxtSearch_TextChanged(object sender, EventArgs e)
-        {
-            LoadBooksSortedFiltered();
-        }
-
-        private void CmbPublisher_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LoadBooksSortedFiltered();
-        }
-
-        private void CmbSort_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LoadBooksSortedFiltered();
-        }
-
-        private void LoadPublishers()
-        {
+            // Настройка ComboBox для фильтрации по издателю
             using (var db = new LibraryContext())
             {
-                cmbPublisherFilter.Items.Clear();
-                cmbPublisherFilter.Items.Add("Все издательства");
-                var pubs = db.Publishers.OrderBy(p => p.PublisherName).ToList();
-                foreach (var p in pubs)
+                var publishers = db.Publishers.OrderBy(p => p.PublisherName).ToList();
+
+                // Добавляем пункт "Все издатели" в начало списка
+                var publisherList = new List<Models.Publisher> { new Models.Publisher { Id = 0, PublisherName = "Все издатели" } };
+                publisherList.AddRange(publishers);
+
+                comboBoxPublisherFilter.DataSource = publisherList;
+                comboBoxPublisherFilter.DisplayMember = "PublisherName";
+                comboBoxPublisherFilter.ValueMember = "Id";
+
+                comboBoxPublisherFilter.SelectedIndex = 0;
+            }
+
+            // Настройка ComboBox для сортировки
+            comboBoxSort.Items.Clear();
+            comboBoxSort.Items.Add("По возрастанию (по количеству)");
+            comboBoxSort.Items.Add("По убыванию (по количеству)");
+            comboBoxSort.SelectedIndex = 0;
+
+            // Подключаем обработчики событий
+            textBoxSearch.TextChanged += textBoxSearch_TextChanged;
+            comboBoxSort.SelectedIndexChanged += comboBoxSort_SelectedIndexChanged;
+            comboBoxPublisherFilter.SelectedIndexChanged += comboBoxPublisherFilter_SelectedIndexChanged;
+            if (buttonResetFilters != null)
+                buttonResetFilters.Click += buttonResetFilters_Click;
+        }
+
+        private void LoadRole()
+        {
+            if (!IsGuest && CurrentUser != null)
+            {
+                // Проверяем, загружена ли роль
+                if (CurrentUser.IdRoleNavigation != null)
                 {
-                    cmbPublisherFilter.Items.Add(p);
+                    currentUserRole = CurrentUser.IdRoleNavigation.RoleName;
                 }
-                cmbPublisherFilter.SelectedIndex = 0;
+                else
+                {
+                    // Если роль не загружена, пробуем загрузить её из БД
+                    using (var db = new LibraryContext())
+                    {
+                        var userWithRole = db.Users
+                            .Include(u => u.IdRoleNavigation)
+                            .FirstOrDefault(u => u.Id == CurrentUser.Id);
+
+                        currentUserRole = userWithRole?.IdRoleNavigation?.RoleName ?? "Неизвестно";
+                    }
+                }
+            }
+            else
+            {
+                currentUserRole = "Гость";
             }
         }
 
-        private void LoadBooksSortedFiltered()
+        private void LoadBooks()
         {
-            string searchStr = txtSearch.Text.ToLower();
-            int sortIdx = cmbSort.SelectedIndex;
-            object selectedPubObj = cmbPublisherFilter.SelectedItem;
-            int? pubId = null;
-            if (selectedPubObj is Publisher p && p != null)
-            {
-                pubId = p.Id;
-            }
-
             try
             {
                 using (var db = new LibraryContext())
                 {
                     var query = db.Books
-                        .Include(b => b.IdAuthorNavigation)
-                        .Include(b => b.IdGenreNavigation)
-                        .Include(b => b.IdPublisherNavigation)
+                        .Include(p => p.IdAuthorNavigation)
+                        .Include(p => p.IdGenreNavigation)
+                        .Include(p => p.IdPublisherNavigation)
                         .AsQueryable();
 
-                    if (!string.IsNullOrWhiteSpace(searchStr))
+                    // Применяем фильтр по издателю (только для администратора)
+                    if (currentUserRole == "Администратор" && selectedPublisherId.HasValue && selectedPublisherId.Value > 0)
                     {
-                        query = query.Where(b =>
-                            b.Isbn.ToLower().Contains(searchStr) ||
-                            b.BookName.ToLower().Contains(searchStr) ||
-                            b.Annotation.ToLower().Contains(searchStr) ||
-                            b.IdAuthorNavigation.AuthorName.ToLower().Contains(searchStr) ||
-                            b.IdGenreNavigation.GenreName.ToLower().Contains(searchStr) ||
-                            b.IdPublisherNavigation.PublisherName.ToLower().Contains(searchStr)
+                        query = query.Where(p => p.IdPublisher == selectedPublisherId.Value);
+                    }
+
+                    // Применяем поиск (по всем текстовым полям) - только для администратора
+                    if (currentUserRole == "Администратор" && !string.IsNullOrWhiteSpace(searchText))
+                    {
+                        query = query.Where(p =>
+                            p.Isbn.Contains(searchText) ||
+                            p.BookName.Contains(searchText) ||
+                            p.IdAuthorNavigation.AuthorName.Contains(searchText) ||
+                            p.IdGenreNavigation.GenreName.Contains(searchText) ||
+                            p.IdPublisherNavigation.PublisherName.Contains(searchText) ||
+                            p.Annotation.Contains(searchText) ||
+                            p.Year.ToString().Contains(searchText) ||
+                            p.Pages.ToString().Contains(searchText)
                         );
                     }
 
-                    if (pubId.HasValue)
+                    // Применяем сортировку по количеству на складе (Avaiable) - только для администратора
+                    if (currentUserRole == "Администратор")
                     {
-                        query = query.Where(b => b.IdPublisher == pubId.Value);
+                        if (sortOrder == "asc")
+                        {
+                            query = query.OrderBy(p => p.Avaiable);
+                        }
+                        else
+                        {
+                            query = query.OrderByDescending(p => p.Avaiable);
+                        }
                     }
-
-                    switch (sortIdx)
+                    else
                     {
-                        case 1:
-                            query = query.OrderBy(b => b.Avaiable);
-                            break;
-                        case 2:
-                            query = query.OrderByDescending(b => b.Avaiable);
-                            break;
-                        default:
-                            query = query.OrderBy(b => b.Id);
-                            break;
+                        // Для остальных сортировка по Id
+                        query = query.OrderBy(p => p.Id);
                     }
 
                     var books = query.ToList();
+
                     dataGridViewBook.SuspendLayout();
                     dataGridViewBook.Rows.Clear();
 
@@ -231,6 +205,8 @@ namespace library_ver2
                     {
                         int rowIndex = dataGridViewBook.Rows.Add();
                         var row = dataGridViewBook.Rows[rowIndex];
+
+                        // Сохраняем объект товара в Tag строки для удобства
                         row.Tag = book;
                         row.Cells["colPhoto"].Value = LoadProductImage(book.PhotoUrl);
                         row.Cells["colInfoBook"].Value = FormatBookInfo(book);
@@ -248,20 +224,78 @@ namespace library_ver2
 
                     dataGridViewBook.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
                     dataGridViewBook.ResumeLayout();
+
                     dataGridViewBook.ClearSelection();
                     selectedBook = null;
+
+                    // Обновляем информацию о количестве найденных записей (только для администратора)
+                    if (currentUserRole == "Администратор" && labelRecordsCount != null)
+                    {
+                        labelRecordsCount.Text = $"Найдено записей: {books.Count}";
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ошибка загрузки: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // Поиск
+        private void textBoxSearch_TextChanged(object sender, EventArgs e)
+        {
+            searchText = textBoxSearch.Text;
+            LoadBooks();
+        }
+
+        // Сортировка
+        private void comboBoxSort_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBoxSort.SelectedIndex == 0)
+            {
+                sortOrder = "asc";
+            }
+            else
+            {
+                sortOrder = "desc";
+            }
+            LoadBooks();
+        }
+
+        // Фильтр по издателю
+        private void comboBoxPublisherFilter_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBoxPublisherFilter.SelectedItem is Models.Publisher selectedPublisher)
+            {
+                if (selectedPublisher.Id == 0)
+                {
+                    // Выбран "Все издатели" - сбрасываем фильтр
+                    selectedPublisherId = null;
+                }
+                else
+                {
+                    selectedPublisherId = selectedPublisher.Id;
+                }
+                LoadBooks();
+            }
+        }
+
+        // Кнопка сброса фильтров
+        private void buttonResetFilters_Click(object sender, EventArgs e)
+        {
+            textBoxSearch.Text = "";
+            comboBoxSort.SelectedIndex = 0;
+            comboBoxPublisherFilter.SelectedIndex = 0;
+            // События сработают автоматически и обновят данные
         }
 
         private void ConfigureDgvProducts()
         {
             dataGridViewBook.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridViewBook.MultiSelect = false;
+
+            dataGridViewBook.SelectionChanged += DgvProducts_SelectionChanged;
         }
 
         private void DgvProducts_SelectionChanged(object sender, EventArgs e)
@@ -283,16 +317,17 @@ namespace library_ver2
                 $"Жанр: {book.IdGenreNavigation.GenreName}" + Environment.NewLine +
                 $"Издатель: {book.IdPublisherNavigation.PublisherName}" + Environment.NewLine +
                 $"Год: {book.Year}" + Environment.NewLine +
-                $"Страниц: {book.Pages}" + Environment.NewLine +
+                $"Количество страниц: {book.Pages}" + Environment.NewLine +
                 $"Аннотация: {book.Annotation}";
         }
 
         private Image LoadProductImage(string photoUrl)
         {
-            if (!string.IsNullOrEmpty(photoUrl) && System.IO.File.Exists(photoUrl))
+            if (!String.IsNullOrEmpty(photoUrl) && System.IO.File.Exists(photoUrl))
             {
                 return Image.FromFile(photoUrl);
             }
+
             return Resources.book_placeholder;
         }
 
@@ -302,90 +337,103 @@ namespace library_ver2
             this.Close();
         }
 
-        // Book management methods for Admin
-        private void ButtonCreate_Click(object sender, EventArgs e)
+        private void buttonOrders_Click(object sender, EventArgs e)
         {
-            var addBookForm = new FormAddEditBook();
-            if (addBookForm.ShowDialog() == DialogResult.OK)
+            if (!IsGuest)
             {
-                LoadBooksSortedFiltered();
+                FormOrders ordersForm = new FormOrders(CurrentUser, IsGuest, currentUserRole);
+                ordersForm.ShowDialog();
             }
         }
 
-        private void ButtonUpdate_Click(object sender, EventArgs e)
+        private void buttonCreate_Click(object sender, EventArgs e)
         {
-            if (selectedBook != null)
+            if (currentUserRole == "Администратор")
             {
-                var editBookForm = new FormAddEditBook(selectedBook);
-                if (editBookForm.ShowDialog() == DialogResult.OK)
-                {
-                    LoadBooksSortedFiltered();
-                }
-            }
-            else
-            {
-                MessageBox.Show("Выберите книгу для редактирования", "Информация",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                FormCreateOrUpdate createForm = new FormCreateOrUpdate(CurrentUser, IsGuest);
+                createForm.ShowDialog();
+                LoadBooks();
             }
         }
 
-        private void ButtonDelete_Click(object sender, EventArgs e)
+        private void buttonUpdate_Click(object sender, EventArgs e)
         {
-            if (selectedBook != null)
+            if (currentUserRole == "Администратор" && selectedBook != null)
             {
-                // Check if book has any active orders
-                using (var db = new LibraryContext())
-                {
-                    var hasActiveOrders = db.Orders.Any(o => o.IdBook == selectedBook.Id && o.ReturnDate == null);
-                    if (hasActiveOrders)
-                    {
-                        MessageBox.Show("Нельзя удалить книгу, которая находится на руках у читателей",
-                            "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                }
-
-                var result = MessageBox.Show($"Удалить книгу \"{selectedBook.BookName}\"?",
-                    "Подтверждение удаления", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
-                if (result == DialogResult.OK)
-                {
-                    using (var db = new LibraryContext())
-                    {
-                        db.Books.Remove(selectedBook);
-                        db.SaveChanges();
-                    }
-                    LoadBooksSortedFiltered();
-                }
+                FormCreateOrUpdate editForm = new FormCreateOrUpdate(CurrentUser, IsGuest, selectedBook);
+                editForm.ShowDialog();
+                LoadBooks();
             }
-            else
+            else if (selectedBook == null)
             {
-                MessageBox.Show("Выберите книгу для удаления", "Информация",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Пожалуйста, выберите книгу для редактирования.",
+                    "Предупреждение",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
         }
 
-        // Orders management
-        private void ButtonOrders_Click(object sender, EventArgs e)
+        private void buttonDelete_Click(object sender, EventArgs e)
         {
-            if (IsGuest)
+            if (currentUserRole != "Администратор")
             {
-                MessageBox.Show("Гостям недоступен просмотр заказов", "Доступ запрещен",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Только администратор может удалять книги.",
+                    "Доступ запрещен",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
                 return;
             }
 
-            if (currentUserRole == "Читатель")
+            if (selectedBook == null)
             {
-                // Reader - show their own orders history
-                var ordersForm = new FormReaderOrders(CurrentUser);
-                ordersForm.ShowDialog();
+                MessageBox.Show("Пожалуйста, выберите книгу для удаления.",
+                    "Книга не выбрана",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
             }
-            else if (currentUserRole == "Менеджер" || currentUserRole == "Администратор")
+
+            var result = MessageBox.Show(
+                $"Вы уверены, что хотите удалить книгу \"{selectedBook.BookName}\"?",
+                "Подтверждение удаления",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result != DialogResult.Yes)
+                return;
+
+            try
             {
-                // Librarian/Admin - show order management form
-                var manageOrdersForm = new FormManageOrders(CurrentUser);
-                manageOrdersForm.ShowDialog();
-                LoadBooksSortedFiltered(); // Refresh to update available counts
+                using (var db = new LibraryContext())
+                {
+                    var book = db.Books.Find(selectedBook.Id);
+
+                    if (book == null)
+                    {
+                        MessageBox.Show("Книга не найдена в базе данных.",
+                            "Ошибка",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    db.Books.Remove(book);
+                    db.SaveChanges();
+                }
+
+                MessageBox.Show("Книга успешно удалена.",
+                    "Успех",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                LoadBooks();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при удалении книги: {ex.InnerException?.Message ?? ex.Message}",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
     }
